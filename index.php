@@ -1,4 +1,7 @@
 <?php
+header('Access-Control-Allow-Origin: *');
+header("Access-Control-Allow-Methods: GET, OPTIONS");
+
 ini_set("pcre.backtrack_limit", "50000000");
 init_cache();
 
