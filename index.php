@@ -25,6 +25,8 @@ function serveFile($search_term){
 	global $obj;
 	global $term;
 
+	$start = microtime(true);
+
 	if(cacheExistsAndValid($search_term)){
 		//serve from cache
 		$path = "cache/jsonCache/".$search_term.".json";
@@ -44,6 +46,9 @@ function serveFile($search_term){
 		echo json_encode($obj);
 		saveToFile(json_encode($obj), "cache/jsonCache/".$term['name'].".json");
 	}
+	$time_elapsed_secs = microtime(true) - $start;
+	echo "time elapsed: ".$time_elapsed_secs;
+	return;
 }
 function saveToFile($toSave, $path){
 
