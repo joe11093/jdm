@@ -31,6 +31,7 @@ function serveFile($search_term){
 		//serve from cache
 		$path = "cache/jsonCache/".$search_term.".json";
 		$str_json = file_get_contents($path);
+		echo "Fetching from Cache.";
 		echo $str_json;
 	}
 	else{
@@ -43,6 +44,7 @@ function serveFile($search_term){
 		$extract = removeEmptyLines($extract);
 		extractData($extract);
 		separateRelationsByType();
+		echo "Fetching from JDM.";
 		echo json_encode($obj);
 		saveToFile(json_encode($obj), "cache/jsonCache/".$term['name'].".json");
 	}
