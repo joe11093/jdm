@@ -39,7 +39,7 @@ function serveFile($search_term){
 	}
 	else{
 		$html_page = download_term($search_term);
-		//$html_page = utf8_encode($html_page);
+		$html_page = utf8_encode($html_page);
 		//echo $html_page;
 		//$extract = getFileRelevantContent($html_page);
 		//$extract = removeCommentsFromContent($extract);
