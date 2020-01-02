@@ -1,6 +1,7 @@
 <?php
 header('Access-Control-Allow-Origin: *');
 header("Access-Control-Allow-Methods: GET, OPTIONS");
+header("Content-Type: text/html;charset=ISO-8859-1");
 
 ini_set("pcre.backtrack_limit", "50000000");
 init_cache();
@@ -20,8 +21,13 @@ $term = "";
 Global $useless_rt;
 $useless_rt = [12,18,19,29,33,36,45,46,47,48,66,118,128,200,444,555,1000,1001,1002,2001];
 
+//echo urlencode("https://ide.geeksforgeeks.org/");
 $search_term = $_GET['term'];
+
+//echo "search term: ".$search_term;
 //echo $search_term;
+//echo 'Plain    : ', urlencode( iconv("UTF-8", "ISO-8859-1", $search_term)), PHP_EOL;
+
 serveFile($search_term);
 
 function serveFile($search_term){
@@ -33,6 +39,7 @@ function serveFile($search_term){
 	if(cacheExistsAndValid($search_term)){
 		//serve from cache
 		$path = "cache/jsonCache/".$search_term.".json";
+		//echo $path;
 		$str_json = file_get_contents($path);
 		//echo "Fetching from Cache.";
 		echo $str_json;
@@ -62,7 +69,8 @@ function saveToFile($toSave, $path){
 
 function download_term($term){
 	$cURL = curl_init();
-	$setopt_array = array(CURLOPT_URL => "http://www.jeuxdemots.org/rezo-dump.php?gotermsubmit=Chercher&gotermrel=".$term."&rel=",    CURLOPT_RETURNTRANSFER => true, CURLOPT_HTTPHEADER => array()); 
+	//echo "Link: http://www.jeuxdemots.org/rezo-dump.php?gotermsubmit=Chercher&gotermrel=". urlencode( iconv("UTF-8", "ISO-8859-1", $term))."&rel=";
+	$setopt_array = array(CURLOPT_URL => "http://www.jeuxdemots.org/rezo-dump.php?gotermsubmit=Chercher&gotermrel=".urlencode( iconv("UTF-8", "ISO-8859-1", $term))."&rel=",    CURLOPT_RETURNTRANSFER => true, CURLOPT_HTTPHEADER => array()); 
 	curl_setopt_array($cURL, $setopt_array);
 	$response_data = curl_exec($cURL);
 	//echo($json_response_data);
