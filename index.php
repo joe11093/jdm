@@ -179,12 +179,22 @@ function extractData($text){
 
 		else if(startsWith($line, "r;")){
 			$exploded = explode(';',$line);
+			$w = $exploded[5];
+
+			if ($w < 0) {
+				settype($w, "int");
+				$wt = "n";
+				$w *= -1;
+				$w = strval($w);
+			}
+			else
+				$wt = "p";
 
 			if($exploded[2]==$term['eid'] && !in_array($exploded[4], $useless_rt)){
-				$arr_r = array('lt' => $exploded[0], 'rid' => $exploded[1], 'node1' => $exploded[2], 'node2' => $exploded[3], 'type' => $exploded[4], 'w' => $exploded[5]);
+				$arr_r = array('lt' => $exploded[0], 'rid' => $exploded[1], 'node1' => $exploded[2], 'node2' => $exploded[3], 'type' => $exploded[4], 'w' => $w, 'wt' => $wt);
 				array_push($rel, $arr_r);
+			}
 		}
-	}
 		$line = strtok($separator);
 	}
 
