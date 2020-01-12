@@ -40,6 +40,12 @@ function serveFile($search_term){
 	else{
 		$html_page = download_term($search_term);
 		$html_page = utf8_encode($html_page);
+
+		if (!termExists($html_page)){
+			echo termExistsError($search_term);
+			return;
+		}
+
 		$extract = removeTags($html_page);
 		$extract = removeEmptyLines($extract);
 		extractData($extract);
@@ -239,6 +245,18 @@ function cacheExistsAndValid($term){
 		//echo "File does not exist";
 		return false;
 	}
+}
+
+function termExists($html_page){
+	return preg_match("/<([\s\/])?CODE>/i", $html_page);
+}
+
+function termExistsError($term){
+	$obj = new stdClass();
+	$obj->error = 0;
+	$obj->message = "the term $term doesn't exist";
+
+	return json_encode($obj);
 }
 
 function alphaSortRelations($rel){
