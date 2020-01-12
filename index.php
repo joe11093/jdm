@@ -70,7 +70,7 @@ function saveToFile($toSave, $path){
 function download_term($term){
 	$cURL = curl_init();
 	//echo "Link: http://www.jeuxdemots.org/rezo-dump.php?gotermsubmit=Chercher&gotermrel=". urlencode( iconv("UTF-8", "ISO-8859-1", $term))."&rel=";
-	$setopt_array = array(CURLOPT_URL => "http://www.jeuxdemots.org/rezo-dump.php?gotermsubmit=Chercher&gotermrel=".urlencode( iconv("UTF-8", "ISO-8859-1", $term))."&rel=",    CURLOPT_RETURNTRANSFER => true, CURLOPT_HTTPHEADER => array()); 
+	$setopt_array = array(CURLOPT_URL => "http://www.jeuxdemots.org/rezo-dump.php?gotermsubmit=Chercher&gotermrel=".urlencode( iconv("UTF-8", "ISO-8859-1", $term))."&rel=",    CURLOPT_RETURNTRANSFER => true, CURLOPT_HTTPHEADER => array());
 	curl_setopt_array($cURL, $setopt_array);
 	$response_data = curl_exec($cURL);
 	//echo($json_response_data);
@@ -114,6 +114,16 @@ function startsWith($haystack, $needle){
     return (substr($haystack, 0, $length) === $needle);
 }
 
+function isDefinition($line){
+	return preg_match("/^\d+\..+(?:<br(\s)?(\/)?>)?/", $line);
+}
+
+function extractDefinition($line){
+	$matches = [];
+	preg_match("/^(\d+)\.(.+)(?:<br(?:\s)?(?:\/)?>)?/", $line, $matches);
+	return $matches;
+}
+
 function extractData($text){
 	global $obj;
 	global $rel;
@@ -131,7 +141,13 @@ function extractData($text){
 
 	while ($line !== false) {
 
-		if(startsWith($line, "e;")){
+		if (isDefinition($line)){
+			$definition = extractDefinition($line);
+			$arr_d = ['number' => $definition[1], 'content' => trim($definition[2])];
+			array_push($def, $arr_d);
+		}
+
+		else if(startsWith($line, "e;")){
 			//echo $line;
 			/*if($isFirst){
 				$term = $line;
@@ -165,7 +181,7 @@ function extractData($text){
 		}
 		else if(startsWith($line, "rt;")){
 			//echo $line;
-			
+
 			$exploded = explode(';',$line);
 			//echo $exploded[2];
 			if(!in_array($exploded[1], $useless_rt)){
@@ -177,7 +193,7 @@ function extractData($text){
 		}
 		else if(startsWith($line, "r;")){
 			//echo $line;
-			
+
 			$exploded = explode(';',$line);
 
 			if($exploded[2]==$term['eid'] && !in_array($exploded[4], $useless_rt)){
@@ -198,6 +214,7 @@ function extractData($text){
 		return $item2['w'] <=> $item1['w'];
 	});
 
+	$obj->definitions = $def;
 	$obj->rts = $rt;
 	//print_r($rel);
 	//echo json_encode($obj);
@@ -215,8 +232,8 @@ function separateRelationsByType(){
 		$obj->{"rt_".$relType['rtid']} = array_values(array_filter($rel, function($var) use ($relType){
 			return ($var['type'] == $relType['rtid']);
 		}));
-	}	
-	
+	}
+
 	//echo json_encode($obj);
 }
 function separateRelationsByDirection($rel){
