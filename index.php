@@ -1,4 +1,5 @@
 <?php
+require_once("paginate.php");
 header('Access-Control-Allow-Origin: *');
 header("Access-Control-Allow-Methods: GET, OPTIONS");
 header("Content-Type: text/html;charset=ISO-8859-1");
@@ -21,13 +22,7 @@ $term = "";
 Global $useless_rt;
 $useless_rt = [12,18,19,29,33,36,45,46,47,48,66,118,128,200,444,555,1000,1001,1002,2001];
 
-//echo urlencode("https://ide.geeksforgeeks.org/");
 $search_term = $_GET['term'];
-
-//echo "search term: ".$search_term;
-//echo $search_term;
-//echo 'Plain    : ', urlencode( iconv("UTF-8", "ISO-8859-1", $search_term)), PHP_EOL;
-
 serveFile($search_term);
 
 function serveFile($search_term){
@@ -39,31 +34,28 @@ function serveFile($search_term){
 	if(cacheExistsAndValid($search_term)){
 		//serve from cache
 		$path = "cache/jsonCache/".$search_term.".json";
-		//echo $path;
-		$str_json = file_get_contents($path);
-		//echo "Fetching from Cache.";
-		echo $str_json;
+		$json = json_decode(file_get_contents($path));
+		$json = json_encode(getInitialPages($json));
 	}
 	else{
 		$html_page = download_term($search_term);
 		$html_page = utf8_encode($html_page);
-		//echo $html_page;
-		//$extract = getFileRelevantContent($html_page);
-		//$extract = removeCommentsFromContent($extract);
 		$extract = removeTags($html_page);
 		$extract = removeEmptyLines($extract);
 		extractData($extract);
 		separateRelationsByType();
-		//echo "Fetching from JDM.";
-		echo json_encode($obj);
 		saveToFile(json_encode($obj), "cache/jsonCache/".$term['name'].".json");
+		$json = json_encode(getInitialPages(json_decode(json_encode($obj))));
 	}
+
+	echo $json;
 	$time_elapsed_secs = microtime(true) - $start;
 	//echo "time elapsed: ".$time_elapsed_secs;
+
 	return;
 }
-function saveToFile($toSave, $path){
 
+function saveToFile($toSave, $path){
 	file_put_contents($path,$toSave);
 }
 
@@ -73,8 +65,8 @@ function download_term($term){
 	$setopt_array = array(CURLOPT_URL => "http://www.jeuxdemots.org/rezo-dump.php?gotermsubmit=Chercher&gotermrel=".urlencode( iconv("UTF-8", "ISO-8859-1", $term))."&rel=",    CURLOPT_RETURNTRANSFER => true, CURLOPT_HTTPHEADER => array());
 	curl_setopt_array($cURL, $setopt_array);
 	$response_data = curl_exec($cURL);
-	//echo($json_response_data);
 	curl_close($cURL);
+
 	return $response_data;
 }
 
@@ -91,7 +83,7 @@ function init_cache(){
 
 function getFileRelevantContent($html){
 	preg_match('/<CODE>(.*?)<\/CODE>/s', $html, $matches);
-	//print_r($matches[0]);
+
 	return $matches[0];
 }
 
@@ -135,8 +127,6 @@ function extractData($text){
 
 	$separator = "\r\n";
 	$line = strtok($text, $separator);
-
-
 	$isFirst = true;
 
 	while ($line !== false) {
@@ -148,13 +138,8 @@ function extractData($text){
 		}
 
 		else if(startsWith($line, "e;")){
-			//echo $line;
-			/*if($isFirst){
-				$term = $line;
-				$obj->term = $term;
-				$isFirst = false;
-			}*/
 			$exploded = explode(';',$line);
+
 			if(count($exploded)==5){
 				//echo $exploded[2];
 				$arr_e = array('lt' => $exploded[0], 'eid' => $exploded[1], 'name' => trim($exploded[2], "'"), 'type' => $exploded[3], 'w' => $exploded[4]);
@@ -165,6 +150,7 @@ function extractData($text){
 				}
 				$ent[$exploded[1]]=$arr_e;
 			}
+
 			else if(count($exploded)==6){
 				$arr_e = array('lt' => $exploded[0], 'eid' => $exploded[1], 'name' => trim($exploded[5], "'"), 'type' => $exploded[3], 'w' => $exploded[4]);
 				if($isFirst){
@@ -174,53 +160,42 @@ function extractData($text){
 				}
 				$ent[$exploded[1]]=$arr_e;
 			}
-			//print_r($arr);
-			//echo json_encode($arr, JSON_UNESCAPED_UNICODE)."\n";
-
-
 		}
-		else if(startsWith($line, "rt;")){
-			//echo $line;
 
-			$exploded = explode(';',$line);
-			//echo $exploded[2];
+		else if(startsWith($line, "rt;")){
+			$exploded = explode(';', $line);
+
 			if(!in_array($exploded[1], $useless_rt)){
 				$arr_rt = array('lt' => $exploded[0], 'rtid' => $exploded[1], 'trname' => $exploded[2], 'trgpname' => $exploded[3], 'rthelp' => $exploded[4]);
 				array_push($rt, $arr_rt);
-				//print_r($arr_rt);
-				//echo json_encode($arr, JSON_UNESCAPED_UNICODE)."\n";
 			}
 		}
-		else if(startsWith($line, "r;")){
-			//echo $line;
 
+		else if(startsWith($line, "r;")){
 			$exploded = explode(';',$line);
 
 			if($exploded[2]==$term['eid'] && !in_array($exploded[4], $useless_rt)){
 				$arr_r = array('lt' => $exploded[0], 'rid' => $exploded[1], 'node1' => $exploded[2], 'node2' => $exploded[3], 'type' => $exploded[4], 'w' => $exploded[5]);
 				array_push($rel, $arr_r);
-				//print_r($arr);
-				//echo json_encode($arr, JSON_UNESCAPED_UNICODE)."\n";
 		}
 	}
-		$line = strtok( $separator );
+		$line = strtok($separator);
 	}
 
-	for($i=0;$i<count($rel);$i++){
+	$obj->defs = new stdClass();
+	$obj->defs->count = count($def);
+	$obj->defs->definitions = $def;
+
+	for($i = 0; $i < count($rel); $i++) {
 		$rel[$i]['node1'] = $ent[$rel[$i]['node1']]['name'];
 		$rel[$i]['node2'] = $ent[$rel[$i]['node2']]['name'];
 	}
+
 	usort($rel, function ($item1, $item2) {
 		return $item2['w'] <=> $item1['w'];
 	});
 
-	$obj->definitions = $def;
 	$obj->rts = $rt;
-	//print_r($rel);
-	//echo json_encode($obj);
-	//print_r($term);
-	//print_r($obj->term);
-
 }
 
 function separateRelationsByType(){
@@ -229,13 +204,16 @@ function separateRelationsByType(){
 	global $obj;
 
 	foreach ($rt as $relType){
-		$obj->{"rt_".$relType['rtid']} = array_values(array_filter($rel, function($var) use ($relType){
+		$relations = array_values(array_filter($rel, function($var) use ($relType){
 			return ($var['type'] == $relType['rtid']);
 		}));
-	}
 
-	//echo json_encode($obj);
+		$obj->{"rt_".$relType['rtid']} = new stdClass();
+		$obj->{"rt_".$relType['rtid']}->count = count($relations);
+		$obj->{"rt_".$relType['rtid']}->relations = $relations;
+	}
 }
+
 function separateRelationsByDirection($rel){
 	//create 2 arrays side the rel array
 	//one for entrante and the other for sortants
@@ -243,9 +221,11 @@ function separateRelationsByDirection($rel){
 
 function cacheExistsAndValid($term){
 	$file_path = "cache/jsonCache/".$term.".json";
+
 	if(file_exists($file_path)){
 		$file_timestamp = filemtime($file_path);
 		$file_date = date("F d Y H:i:s.", $file_timestamp);
+
 		if($file_timestamp < strtotime('- 30 days')){
 			//echo "File is old";
 			return false;
