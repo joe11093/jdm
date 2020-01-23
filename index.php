@@ -19,6 +19,8 @@ Global $def;
 $def = array();
 Global $term;
 $term = "";
+Global $sort;
+$sort = "weight";
 Global $useless_rt;
 $useless_rt = [12,18,19,29,33,36,45,46,47,48,66,118,128,200,444,555,1000,1001,1002,2001];
 
@@ -26,8 +28,6 @@ $search_term = $_GET['term'];
 
 if (isset($_GET['sort']))
  	$sort = $_GET['sort'];
-else
-	$sort = "weight";
 
 serveFile($search_term);
 
@@ -135,6 +135,7 @@ function extractData($text){
 	global $ent;
 	global $def;
 	global $term;
+	global $sort;
 	global $useless_rt;
 
 	$separator = "\r\n";
@@ -213,10 +214,14 @@ function extractData($text){
 		$rel[$i]['node2'] = $ent[$rel[$i]['node2']]['name'];
 	}
 
-	if ($sort == "weight")
+	if ($sort == "weight"){
+		echo "sorting by weights<br/>";
 		weightSortRelations();
-	else
+	}
+	else{
+		echo "sorting alphabetically<br/>";
 		alphaSortRelations();
+	}
 
 	$obj->rts = $rt;
 }
@@ -286,24 +291,20 @@ function weightSortRelations(){
 
 function alphaSortRelations(){
 	global $rel;
-	global $term;
-
-	usort($rel, function ($item1, $item2) {
-		if ($item1['node1'] == $term->name) // exiting relations
-			return $item1['node1'] <=> $item2['node1'];
-		else // entering relations
-			return $item1['node2'] <=> $item2['node2'];
-	});
 
 	$previousLocale = setlocale(LC_ALL, 0);
-	if (setlocale(LC_ALL, "fr_FR.utf8") !== false)
-	{
-	  sort($rel, SORT_LOCALE_STRING);
-	  var_dump($str_array);
-	  setlocale(LC_ALL, $previousLocale);
-	  echo "Returning to the original locale: $previousLocale\n";
+	if (setlocale(LC_ALL, "fr_FR.utf8") !== false) {
+		usort($rel, function ($item1, $item2) {
+			global $term;
+			if (strtolower($item1['node1']) == strtolower($term['name'])) // exiting relations
+				return strcoll(strtolower($item1['node2']), strtolower($item2['node2']));
+			else // entering relations
+				return strcoll(strtolower($item1['node1']), strtolower($item2['node1']));
+		});
+
+		setlocale(LC_ALL, $previousLocale);
 	}
 	else
-	  echo "failed to change locale";
+	  echo "error: failed to sort alphabetically <br/>";
 }
 ?>
