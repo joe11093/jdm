@@ -34,13 +34,12 @@ serveFile($search_term);
 function serveFile($search_term){
 	global $obj;
 	global $term;
+	global $sort;
 
 	$start = microtime(true);
 
-	if(cacheExistsAndValid($search_term)){
-		//serve from cache
-		$path = "cache/jsonCache/".$search_term.".json";
-		$json = json_decode(file_get_contents($path));
+	if(($cache_path = cacheExistsAndValid($search_term)) != false){
+		$json = json_decode(file_get_contents($cache_path));
 		$json = json_encode(getInitialPages($json));
 	}
 	else{
@@ -56,12 +55,16 @@ function serveFile($search_term){
 		$extract = removeEmptyLines($extract);
 		extractData($extract);
 		separateRelationsByType();
-		saveToFile(json_encode($obj), "cache/jsonCache/".$term['name'].".json");
+
+		if ($sort == "weight")
+			saveToFile(json_encode($obj), "cache/terms/weight/".$term['name'].".json");
+		else
+			saveToFile(json_encode($obj), "cache/terms/alpha/".$term['name'].".json");
+
 		$json = json_encode(getInitialPages(json_decode(json_encode($obj))));
 	}
 
 	echo $json;
-	$time_elapsed_secs = microtime(true) - $start;
 	//echo "time elapsed: ".$time_elapsed_secs;
 
 	return;
@@ -86,7 +89,8 @@ function init_cache(){
 	if(!is_dir("cache")){
 		//echo "creating cache";
 		mkdir("cache");
-		mkdir("cache/jsonCache");
+		mkdir("cache/terms/weight", 0777, true);
+		mkdir("cache/terms/alpha", 0777, true);
 	}
 	else{
 		//echo "Cache already exists";
@@ -150,7 +154,7 @@ function extractData($text){
 			array_push($def, $arr_d);
 		}
 
-		else if(startsWith($line, "e;")){
+		elseif(startsWith($line, "e;")){
 			$exploded = explode(';',$line);
 
 			if(count($exploded)==5){
@@ -164,7 +168,7 @@ function extractData($text){
 				$ent[$exploded[1]]=$arr_e;
 			}
 
-			else if(count($exploded)==6){
+			elseif(count($exploded)==6){
 				$arr_e = array('lt' => $exploded[0], 'eid' => $exploded[1], 'name' => trim($exploded[5], "'"), 'type' => $exploded[3], 'w' => $exploded[4]);
 				if($isFirst){
 					$isFirst = false;
@@ -175,7 +179,7 @@ function extractData($text){
 			}
 		}
 
-		else if(startsWith($line, "rt;")){
+		elseif(startsWith($line, "rt;")){
 			$exploded = explode(';', $line);
 
 			if(!in_array($exploded[1], $useless_rt)){
@@ -184,7 +188,7 @@ function extractData($text){
 			}
 		}
 
-		else if(startsWith($line, "r;")){
+		elseif(startsWith($line, "r;")){
 			$exploded = explode(';',$line);
 			$w = $exploded[5];
 
@@ -244,9 +248,12 @@ function separateRelationsByDirection($rel){
 }
 
 function cacheExistsAndValid($term){
-	$file_path = "cache/jsonCache/".$term.".json";
+  global $sort;
 
-	if(file_exists($file_path)){
+	$file_path = "cache/terms/weight/".$term.".json";
+	$file_alpha_path = "cache/terms/alpha/".$term.".json";
+
+	if($sort == "weight" && file_exists($file_path)){
 		$file_timestamp = filemtime($file_path);
 		$file_date = date("F d Y H:i:s.", $file_timestamp);
 
@@ -256,7 +263,20 @@ function cacheExistsAndValid($term){
 		}
 		else{
 			//echo "File is not old";
-			return true;
+			return $file_path;
+		}
+	}
+	elseif($sort == "alpha" && file_exists($file_alpha_path)){
+		$file_timestamp = filemtime($file_alpha_path);
+		$file_date = date("F d Y H:i:s.", $file_timestamp);
+
+		if($file_timestamp < strtotime('- 30 days')){
+			//echo "File is old";
+			return false;
+		}
+		else{
+			//echo "File is not old";
+			return $file_alpha_path;
 		}
 	}
 	else{
@@ -277,6 +297,14 @@ function termExistsError($term){
 	return json_encode($obj);
 }
 
+function sortingError($term){
+	$obj = new stdClass();
+	$obj->error = 1;
+	$obj->message = "relations of $term cannot be sorted alphabetically";
+
+	return json_encode($obj);
+}
+
 function weightSortRelations(){
 	global $rel;
 
@@ -287,6 +315,7 @@ function weightSortRelations(){
 
 function alphaSortRelations(){
 	global $rel;
+	global $term;
 
 	$previousLocale = setlocale(LC_ALL, 0);
 	if (setlocale(LC_ALL, "fr_FR.utf8") !== false) {
@@ -301,6 +330,6 @@ function alphaSortRelations(){
 		setlocale(LC_ALL, $previousLocale);
 	}
 	else
-	  echo "error: failed to sort alphabetically <br/>";
+	  return sortingError($term);
 }
 ?>

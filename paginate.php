@@ -51,19 +51,26 @@ if(isset($_GET['term']) && isset($_GET['page']) && isset($_GET['per_page']) && i
 	$per_page = $_GET['per_page'];
 	$criterion = $_GET['criterion'];
 
-	$path = "cache/jsonCache/".$search_term.".json";
+	$path = "cache/terms/weight/".$search_term.".json";
 	$json = json_decode(file_get_contents($path));
 
-	if($criterion == "definition"){
-		$definitions = json_encode(getDefinitionsForPage($json, $page, $per_page));
-		echo $definitions;
-	}
-
-	else if ($criterion == "relation"){
-		if(isset($_GET['type'])){
+	if ($criterion == "relation"){
+		if (isset($_GET['sort']) && isset($_GET['type'])){
+			$sort = $_GET['sort'];
 			$type = $_GET['type'];
+
+			if($sort == "alpha"){
+				$path = "cache/terms/alpha/".$search_term.".json";
+				$json = json_decode(file_get_contents($path));
+			}
+
 			$relations = json_encode(getRelationsForPage($json, $type, $page, $per_page));
 			echo $relations;
 		}
+	}
+
+	elseif ($criterion == "definition"){
+		$definitions = json_encode(getDefinitionsForPage($json, $page, $per_page));
+		echo $definitions;
 	}
 }
