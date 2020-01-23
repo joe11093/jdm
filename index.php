@@ -23,6 +23,12 @@ Global $useless_rt;
 $useless_rt = [12,18,19,29,33,36,45,46,47,48,66,118,128,200,444,555,1000,1001,1002,2001];
 
 $search_term = $_GET['term'];
+
+if (isset($_GET['sort']))
+ 	$sort = $_GET['sort'];
+else
+	$sort = "weight";
+
 serveFile($search_term);
 
 function serveFile($search_term){
@@ -207,9 +213,10 @@ function extractData($text){
 		$rel[$i]['node2'] = $ent[$rel[$i]['node2']]['name'];
 	}
 
-	usort($rel, function ($item1, $item2) {
-		return $item2['w'] <=> $item1['w'];
-	});
+	if ($sort == "weight")
+		weightSortRelations();
+	else
+		alphaSortRelations();
 
 	$obj->rts = $rt;
 }
@@ -269,7 +276,34 @@ function termExistsError($term){
 	return json_encode($obj);
 }
 
-function alphaSortRelations($rel){
+function weightSortRelations(){
+	global $rel;
 
+	usort($rel, function ($item1, $item2) {
+		return $item2['w'] <=> $item1['w'];
+	});
+}
+
+function alphaSortRelations(){
+	global $rel;
+	global $term;
+
+	usort($rel, function ($item1, $item2) {
+		if ($item1['node1'] == $term->name) // exiting relations
+			return $item1['node1'] <=> $item2['node1'];
+		else // entering relations
+			return $item1['node2'] <=> $item2['node2'];
+	});
+
+	$previousLocale = setlocale(LC_ALL, 0);
+	if (setlocale(LC_ALL, "fr_FR.utf8") !== false)
+	{
+	  sort($rel, SORT_LOCALE_STRING);
+	  var_dump($str_array);
+	  setlocale(LC_ALL, $previousLocale);
+	  echo "Returning to the original locale: $previousLocale\n";
+	}
+	else
+	  echo "failed to change locale";
 }
 ?>
