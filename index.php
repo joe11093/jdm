@@ -214,14 +214,10 @@ function extractData($text){
 		$rel[$i]['node2'] = $ent[$rel[$i]['node2']]['name'];
 	}
 
-	if ($sort == "weight"){
-		echo "sorting by weights<br/>";
+	if ($sort == "weight")
 		weightSortRelations();
-	}
-	else{
-		echo "sorting alphabetically<br/>";
+	else
 		alphaSortRelations();
-	}
 
 	$obj->rts = $rt;
 }
