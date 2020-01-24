@@ -1,0 +1,65 @@
+ChangeLog:
+----------
+Version 2.0
+===========
+URL:
+  index.php
+    required query string parameters: term (search entry)
+    optional query string parameters: sort (sorting order, by default "weight" ("alpha" is also available))
+  paginate.php
+    required query string parameters:
+      common for all pagination targets:
+        1. term (search entry) (same as previous version),
+        2. target (the pagination target, "definition" or "relation") (replaces "criterion" in the previous version)
+        3. sort (sorting order) (same as previous version)
+        4. page (page index) (same as previous version)
+        5. per_page (number of entries per page) (same as previous version)
+      if we're paginating "definition", the above parameters are sufficient
+      if we're paginating "relation", an extra parameter is "type" designating the type of relation to paginate (i .e. the id of the corresponding relation type) (same as previous version)
+
+new cached JSON term structure
+{
+  "term": { // the cached term (same as previous structure)
+    "symbol": "e", // symbol in the CSV entry in the dump (replaces "lt" in the previous structure)
+    "id": "154455", // id (replaces "eid" in the previous structure)
+    "name": "buche", // name (same as previous structure)
+    "type": "1", // node type (same as previous structure)
+    "weight": "52" // weight (replaces "w" in the previous structure)
+  },
+  "defs": { // the term's definitions (same as previous structure)
+    "count": "10", // total number of definitions for the term (same as previous structure)
+    "definitions": [ // the array of definitions (same as previous structure)
+      {
+        "number": "1", // the number preceding the definition as specified in the dump (same as previous structure)
+        "content": "(Vieilli) Jauge pour régler l'épaisseur des pains de savon." // the definition content (same as previous structure)
+      },
+      ... // more definition objects
+    ]
+  },
+  "rts": [ // the types of relations in which the term participates
+    {
+      "symbol": "rt", // symbol in the CSV entry in the dump (replaces "lt" in the previous structure)
+      "id": "0", // id (replaces "rtid" in the previous structure)
+      "name": "'r_associated'", // name (replaces "trname" in the previous structure)
+      "description": "'idée associée'", // description (replaces "trgpname" in the previous structure)
+      "help": "Il est demandé d'énumérer les termes les plus étroitement associés au mot cible... Ce mot vous fait penser à quoi ?" // help (replaces "rthelp" in the previous structure)
+    },
+    ... // more relation type objects
+  ],
+  "rt_3": { // relations of type having id = 3 (same as previous structure)
+    "count": 3, // total number of relations of this type (same as previous structure)
+    "relations": [ // the array of relations (same as previous structure)
+      {
+        "symbol": "r", // symbol in the CSV entry in the dump (replaces "lt" in the previous structure)
+        "id": "56369708", // id (replaces "rid" in the previous structure)
+        "source": "buche", // source of the relation (replaces "node1" in the previous structure)
+        "destination": "cuisine", // destination of the relation (replaces "node2" in the previous structure)
+        "type": "3", // type (same as previous structure)
+        "weight": "44", // weight (replaces "w" in the previous structure)
+        "weightType": "p" weight type ("p" or "n") (replaces "wt" in the previous structure)
+      },
+      ... // more relation objects
+    ]
+  },
+  ... // more relations of other relation types
+}
