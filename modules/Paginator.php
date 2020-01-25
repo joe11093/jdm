@@ -40,9 +40,12 @@ class Paginator
         // $this->perPage = <value>;
         foreach($this->cachedTerm->rts as $rt)
         {
-            $schema->{"rt_".$rt->id} = new stdClass();
-            $schema->{"rt_".$rt->id}->count = $this->cachedTerm->{"rt_".$rt->id}->count;
-            $schema->{"rt_".$rt->id}->relations = $this->getRelationsPageSchema($rt->id);
+            if (isset($this->cachedTerm->{"rt_".$rt->id}))
+            {
+                $schema->{"rt_".$rt->id} = new stdClass();
+                $schema->{"rt_".$rt->id}->count = $this->cachedTerm->{"rt_".$rt->id}->count;
+                $schema->{"rt_".$rt->id}->relations = $this->getRelationsPageSchema($rt->id);
+            }
         }
 
         $this->pageIndex = $oldIndex;

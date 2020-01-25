@@ -111,6 +111,7 @@ class SearchController
             elseif ($category == "alpha")
                 $term->sortRelationsByFrLexicOrder();
 
+
             $this->cache->commit($term);
             $this->cache->save($this->searchEntry, $category);
         }
@@ -119,6 +120,23 @@ class SearchController
 
         if ($term != null)
         {
+            if (isset($params['type']))
+            {
+                $typeId = $params['type'];
+
+                if (!property_exists($term, "rt_$typeId"))
+                {
+                    $this->setResponse(json_encode(['error' => 2, 'message' => "No relations of type $typeId for " . $this->searchEntry]));
+                    return $this->response;
+                }
+
+                foreach (get_object_vars($term) as $name => $value)
+                {
+                    if (startsWith($name, "rt_") && !endsWith($name, "_$typeId"))
+                        unset($term->$name);
+                }
+            }
+
             $paginator = new Paginator(1, 5, $term);
             $initialPagesSchema = $paginator->getInitialPagesSchema();
 
