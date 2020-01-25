@@ -87,6 +87,8 @@ class Parser
               $arr_entity[4], // weight
               trim($arr_entity[5], "'") // formattedName
             );
+        else
+            return;
 
         if ($isFirst)
         {
