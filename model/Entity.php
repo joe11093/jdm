@@ -133,9 +133,11 @@ class Entity
         return count($this->relations);
     }
 
-    public function addRelation($symbol, $id, $source, $destination, $type, $weight)
+    public function addRelation($symbol, $id, $source, $destination, $type, $weight, $isEntering)
     {
-        array_push($this->relations, new Relation($symbol, $id, $source, $destination, $type, $weight));
+        $relation = new Relation($symbol, $id, $source, $destination, $type, $weight);
+        $relation->setIsEntering($isEntering);
+        array_push($this->relations, $relation);
     }
 
     public function adaptRelationsNodes()

@@ -87,7 +87,7 @@ class Parser
               $arr_entity[4], // weight
               trim($arr_entity[5], "'") // formattedName
             );
-        else
+        else // TODO handling CSV entries that contain ";" :)
             return;
 
         if ($isFirst)
@@ -137,16 +137,33 @@ class Parser
         $arr_relation = explode(self::ENTRY_SEPARATOR, $line);
 
         // we can modify the condition below to access the entering relations as well
-        if ($arr_relation[2] == $this->term->getId() && !in_array($arr_relation[4], self::USELESS_RTS))
+        if (!in_array($arr_relation[4], self::USELESS_RTS))
         {
-            $this->term->addRelation(
-              $arr_relation[0], // symbol
-              $arr_relation[1], // id
-              $arr_relation[2], // source
-              $arr_relation[3], // destination
-              $arr_relation[4], // type
-              $arr_relation[5] // weight (weight type is derived from it)
-            );
+            if ($arr_relation[2] == $this->term->getId()) // exiting relations
+            {
+                $this->term->addRelation(
+                  $arr_relation[0], // symbol
+                  $arr_relation[1], // id
+                  $arr_relation[2], // source
+                  $arr_relation[3], // destination
+                  $arr_relation[4], // type
+                  $arr_relation[5], // weight (weight type is derived from it)
+                  false // is not an entering relation
+                );
+            }
+
+            else // entering relations
+            {
+                $this->term->addRelation(
+                  $arr_relation[0], // symbol
+                  $arr_relation[1], // id
+                  $arr_relation[2], // source
+                  $arr_relation[3], // destination
+                  $arr_relation[4], // type
+                  $arr_relation[5], // weight (weight type is derived from it)
+                  true // is not an entering relation
+                );
+            }
   			}
     }
 

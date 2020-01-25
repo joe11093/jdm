@@ -9,6 +9,7 @@ class Relation
     private $type; // type
     private $weight; // w
     private $weightType; // wt (derived from w)
+    private $isEntering; // isEntering (derived from entity participating in it)
 
     /* CONSTRUCTOR */
     public function __construct($symbol, $id, $source, $destination, $type, $weight)
@@ -86,6 +87,11 @@ class Relation
     private function setWeightType($weightType)
     {
         $this->weightType = $weightType;
+    }
+
+    public function setIsEntering($isEntering)
+    {
+        $this->isEntering = $isEntering;
     }
 
     public function toArray()
