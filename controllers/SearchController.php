@@ -124,6 +124,14 @@ class SearchController
             {
                 $typeId = $params['type'];
 
+                // removing all relation types except that relation type
+                foreach ($term->rts as $key => $rt)
+                {
+                    if ($rt->id != $typeId)
+                        unset($term->rts[$key]);
+                }
+
+                // removing relations not having that type
                 if (!property_exists($term, "rt_$typeId"))
                 {
                     $this->setResponse(json_encode(['error' => 2, 'message' => "No relations of type $typeId for " . $this->searchEntry]));
