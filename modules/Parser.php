@@ -1,6 +1,6 @@
 <?php
-include_once(dirname(__FILE__, 2) . '/classLoader.php');
-include_once(dirname(__FILE__, 2) . '/utility.php');
+require_once(dirname(__FILE__, 2) . '/classLoader.php');
+require_once(dirname(__FILE__, 2) . '/utility.php');
 
 class Parser
 {
