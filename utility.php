@@ -8,7 +8,7 @@ function startsWith($haystack, $needle)
 function endsWith($haystack, $needle)
 {
     $length = strlen($needle);
-    
+
     if ($length == 0)
         return true;
 

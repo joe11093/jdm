@@ -5,6 +5,9 @@ function autoload($class)
       dirname(__FILE__) . "/model/",
       dirname(__FILE__) . "/controllers/",
       dirname(__FILE__) . "/modules/",
+      dirname(__FILE__) . "/services/search/",
+      dirname(__FILE__) . "/services/cache/",
+      dirname(__FILE__) . "/services/pagination/"
     ];
 
     foreach ($paths as $path)

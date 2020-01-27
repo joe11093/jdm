@@ -15,7 +15,8 @@ class Entity
     private $definitions = []; // entity definitions
     private $entities = []; // related terms
     private $relationTypes = []; // types of relations in which the entity participates
-    private $relations = []; // relations in which the entity participates;
+    private $enteringRelations = []; // entering relations in which the entity participates;
+    private $exitingRelations = []; // exiting relations in which the entity participates;
 
     /* CONSTRUCTOR */
     public function __construct($symbol, $id, $name, $type, $weight, $formattedName)
@@ -122,59 +123,104 @@ class Entity
         array_push($this->relationTypes, new RelationType($symbol, $id, $name, $description, $help));
     }
 
-    public function &getRelations()
+    public function &getEnteringRelations()
     {
-        foreach($this->relations as $relation)
+        foreach($this->enteringRelations as $relation)
             yield $relation;
     }
 
-    public function getRelationsCount()
+    public function getEnteringRelationsCount()
     {
-        return count($this->relations);
+        return count($this->enteringRelations);
     }
 
-    public function addRelation($symbol, $id, $source, $destination, $type, $weight, $isEntering)
+    public function &getExitingRelations()
+    {
+        foreach($this->exitingRelations as $relation)
+            yield $relation;
+    }
+
+    public function getExitingRelationsCount()
+    {
+        return count($this->exitingRelations);
+    }
+
+    public function addRelation($symbol, $id, $source, $destination, $type, $weight)
     {
         $relation = new Relation($symbol, $id, $source, $destination, $type, $weight);
-        $relation->setIsEntering($isEntering);
-        array_push($this->relations, $relation);
+
+        if ($destination == $this->getId())
+            array_push($this->enteringRelations, $relation);
+        else
+            array_push($this->exitingRelations, $relation);
     }
 
     public function adaptRelationsNodes()
     {
-        foreach ($this->getRelations() as &$relation)
+        foreach ($this->getEnteringRelations() as &$relation)
         {
             $source = $this->getEntityById($relation->getSource());
             if ($source != null)
-              $relation->setSource($source->getName());
+                $relation->setSource($source->getName());
+
+            $relation->setDestination($this->getName());
+        }
+
+        foreach ($this->getExitingRelations() as &$relation)
+        {
+            $relation->setSource($this->getName());
 
             $destination = $this->getEntityById($relation->getDestination());
-            if ($destination != null)
-              $relation->setDestination($destination->getName());
+            if($destination != null)
+                $relation->setDestination($destination->getName());
         }
     }
 
-    public function sortRelationsByDescWeight()
+    public function sortRelationsByDescWeight($orientation)
     {
-        usort($this->relations, function ($rel1, $rel2) {
-          return $rel2->getWeight() <=> $rel1->getWeight();
-        });
+        if ($orientation == "entering")
+            usort($this->enteringRelations, ["Entity", "compareRelationsByDescWeight"]);
+        elseif ($orientation == "exiting")
+            usort($this->exitingRelations, ["Entity", "compareRelationsByDescWeight"]);
+
+        elseif ($orientation == "both")
+        {
+            usort($this->enteringRelations, ["Entity", "compareRelationsByDescWeight"]);
+            usort($this->exitingRelations, ["Entity", "compareRelationsByDescWeight"]);
+        }
     }
 
-    public function sortRelationsByFrLexicOrder()
+    public static function compareRelationsByDescWeight($rel1, $rel2)
+    {
+        return $rel2->getWeight() <=> $rel1->getWeight();
+    }
+
+    public function sortRelationsByFrLexicOrder($orientation)
     {
         $previousLocale = setlocale(LC_ALL, 0);
 
         if (setlocale(LC_ALL, "fr_FR.utf8") !== false)
         {
-            usort($this->relations, function($rel1, $rel2) {
+            if ($orientation == "entering")
+                usort($this->enteringRelations, function($rel1, $rel2) {
+                    return strcoll(strtolower($rel1->getSource()), strtolower($rel2->getSource()));
+                });
 
-              if (strtolower($this->getName()) == strtolower($rel1->getSource())) // exiting relation
-                  return strcoll(strtolower($rel1->getDestination()), strtolower($rel2->getDestination()));
+            elseif ($orientation == "exiting")
+                usort($this->exitingRelations, function($rel1, $rel2) {
+                    return strcoll(strtolower($rel1->getDestination()), strtolower($rel2->getDestination()));
+                });
 
-              else // entering relation
-                  return strcoll(strtolower($rel1->getSource()), strtolower($rel2->getSource()));
-            });
+            elseif ($orientaton = "both")
+            {
+                usort($this->enteringRelations, function($rel1, $rel2) {
+                    return strcoll(strtolower($rel1->getSource()), strtolower($rel2->getSource()));
+                });
+
+                usort($this->exitingRelations, function($rel1, $rel2) {
+                    return strcoll(strtolower($rel1->getDestination()), strtolower($rel2->getDestination()));
+                });
+            }
 
             setlocale(LC_ALL, $previousLocale);
         }
@@ -182,12 +228,8 @@ class Entity
 
     public function toArray()
     {
-        $filtered = array_filter(get_object_vars($this), function($att) {
-
-          return gettype($att) != "array";
-
+        return array_filter(get_object_vars($this), function($att) {
+            return gettype($att) != "array";
         });
-
-        return $filtered;
     }
 }

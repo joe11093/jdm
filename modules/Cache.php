@@ -4,25 +4,47 @@ require_once(dirname(__FILE__, 2) . '/classLoader.php');
 class Cache
 {
     /* ATTRIBUTES */
-    private $path; // cache root directory
-    private $committed; // json object of term to be cached
+    private $root; // cache root directory
+    private $term; // name of the search entry, to be replaced by the actual parsed element upon caching
+    private $pathComponents; // names of cached term's parent directories
+    private $committed; // json object of term to be constructed by the policy and later cached
+    private $policy; // caching policy
 
     /* CONSTRUCTOR */
-    public function __construct($path)
+    public function __construct($root, $pathComponents, $term)
     {
-        $this->path = $path;
-        if(!is_dir($path))
-        {
-            mkdir($path);
-            mkdir("$path/terms/weight", 0777, true);
-            mkdir("$path/terms/alpha", 0777, true);
-        }
+        $this->root = $root;
+        $this->pathComponents = $pathComponents;
+        $this->term = $term;
+
+        if(!is_dir($root))
+            mkdir($root);
     }
 
     /* METHODS */
-    public function getPath()
+    public function getRoot()
     {
-        return $this->path;
+        return $this->root;
+    }
+
+    public function getPathComponents()
+    {
+        return $this->pathComponents;
+    }
+
+    public function setPathComponents($pathComponents)
+    {
+        $this->pathComponents = $pathComponents;
+    }
+
+    public function getTerm()
+    {
+        return $this->term;
+    }
+
+    public function setTerm($term)
+    {
+        $this->term = $term;
     }
 
     public function getCommitted()
@@ -30,9 +52,39 @@ class Cache
         return $this->committed;
     }
 
-    public function containsValid($name, $category)
+    public function getPolicy()
     {
-        $path = $this->constructPath($name, $category);
+        return $this->policy;
+    }
+
+    public function setPolicy($policy)
+    {
+        $this->policy = $policy;
+    }
+
+    public function getParentDirectory()
+    {
+        $path =  "{$this->root}/";
+        $path .= implode("/", $this->pathComponents);
+
+        return $path;
+    }
+
+    public function getPath()
+    {
+        $path = $this->getParentDirectory();
+
+        if (gettype($this->term) == "string")
+            $path .= "/{$this->term}.json";
+        else
+            $path .= "/{$this->term->getName()}.json";
+
+        return $path;
+    }
+
+    public function containsValidCachedTerm()
+    {
+        $path = $this->getPath();
 
         if (file_exists($path))
         {
@@ -48,74 +100,39 @@ class Cache
         return false;
     }
 
-    public function constructPath($name, $category)
+    public function commit() // called only after setting the policy
     {
-        return $this->path."/terms/$category/$name.json";
-    }
+        $this->policy->commitTerm();
+        $this->policy->commitDefinitions();
+        $this->policy->commitRelationTypes();
+        $this->policy->commitRelations();
+        $this->policy->commitRelatedTerms();
 
-    public function commit($term)
-    {
-        $this->committed = new stdClass();
-        $this->commitTerm($term);
-        $this->commitDefinitions($term);
-        $this->commitRelationTypes($term);
-        $this->commitRelations($term);
+        $this->committed = $this->policy->getConstructed();
 
         return $this->committed;
     }
 
-    private function commitTerm($term)
+    public function save()
     {
-        $this->committed->term = $term->toArray();
+        if(!is_dir($this->getParentDirectory()))
+            mkdir($this->getParentDirectory(), 0777, true);
+        file_put_contents($this->getPath(), json_encode($this->committed));
     }
 
-    private function commitDefinitions($term)
+    public function load()
     {
-        $this->committed->defs = new stdClass();
-        $this->committed->defs->count = $term->getDefinitionsCount();
-        $this->committed->defs->definitions = [];
-
-        foreach($term->getDefinitions() as &$definition)
-            array_push($this->committed->defs->definitions, $definition->toArray());
-    }
-
-    private function commitRelationTypes($term)
-    {
-        $this->committed->rts = [];
-
-        foreach($term->getRelationTypes() as &$relationType)
-            array_push($this->committed->rts, $relationType->toArray());
-    }
-
-    private function commitRelations($term)
-    {
-        foreach ($term->getRelationTypes() as &$relationType)
-        {
-
-          $this->committed->{"rt_".$relationType->getId()} = new stdClass();
-          $relations = [];
-
-          foreach($term->getRelations() as &$relation)
-          {
-              if ($relation->getType() == $relationType->getId())
-                  array_push($relations, $relation->toArray());
-          }
-
-          $this->committed->{"rt_".$relationType->getId()}->count = count($relations);
-          $this->committed->{"rt_".$relationType->getId()}->relations = $relations;
-        }
-    }
-
-    public function save($name, $category)
-    {
-        file_put_contents($this->constructPath($name, $category), json_encode($this->committed));
-    }
-
-    public function load($name, $category)
-    {
-        if ($this->containsValid($name, $category) != false)
-            return json_decode(file_get_contents($this->constructPath($name, $category)));
+        if ($this->containsValidCachedTerm() != false)
+            return json_decode(file_get_contents($this->getPath()));
 
         return null;
+    }
+
+    public function remove()
+    {
+        if ($this->containsValidCachedTerm() != false)
+            return unlink($this->getPath());
+
+        return false;
     }
 }
