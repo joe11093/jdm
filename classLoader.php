@@ -13,7 +13,7 @@ function autoload($class)
     foreach ($paths as $path)
     {
         if (is_file($path . "$class.php"))
-            include_once($path . "$class.php");
+            require_once($path . "$class.php");
     }
 }
 
